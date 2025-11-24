@@ -1,0 +1,71 @@
+/* css/main.css */
+@import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap');
+
+body {
+    background-color: #fff3f3;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    min-height: 100vh;
+}
+
+/* --- Títulos y Textos --- */
+h1, h2, h3 { color: #b30000; font-weight: 700; }
+.text-brand { color: #b30000; }
+
+/* --- Tarjetas (Contenedores) --- */
+.card-custom {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(179, 0, 0, 0.1);
+    border: none;
+    padding: 30px;
+    margin-top: 2rem;
+}
+
+/* --- Botones --- */
+.btn-brand {
+    background-color: #b30000;
+    color: white;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 10px 20px;
+    border: none;
+    transition: all 0.3s;
+}
+.btn-brand:hover { background-color: #800000; color: white; }
+.btn-brand:disabled { background-color: #e0e0e0; color: #666; cursor: not-allowed; }
+
+/* --- Sidebar (Menú Lateral) --- */
+.sidebar {
+    height: 100vh;
+    width: 250px;
+    position: fixed;
+    top: 0; left: 0;
+    background-color: #343a40;
+    padding-top: 20px;
+    display: flex;
+    flex-direction: column;
+}
+.sidebar a {
+    padding: 15px 25px;
+    text-decoration: none;
+    color: #ddd;
+    font-size: 1.1rem;
+    display: block;
+}
+.sidebar a:hover, .sidebar a.active {
+    background-color: #b30000;
+    color: white;
+}
+.content-wrapper { margin-left: 250px; padding: 40px; }
+
+/* --- Inputs --- */
+.form-control {
+    border-radius: 8px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    margin-bottom: 15px;
+}
+
+/* --- Notificaciones --- */
+.msg-success { color: green; font-weight: bold; font-size: 0.9em; margin-top: 5px; }
+.msg-error { color: #dc3545; font-weight: bold; font-size: 0.9em; margin-top: 5px; }

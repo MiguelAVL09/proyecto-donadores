@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registro</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/main.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+</head>
+<body id="page-registro" class="py-5">
+    <div class="container d-flex justify-content-center">
+        <div class="card-custom" style="width: 500px;">
+            <h2 class="text-center mb-4">Registro de Donador</h2>
+            <form id="formRegistro">
+                <input type="text" id="txtNombre" class="form-control" placeholder="Nombre Completo" required>
+                <input type="text" id="txtCURP" class="form-control" placeholder="CURP" required>
+                
+                <label class="form-label text-muted mt-2">Verificación de Correo</label>
+                <div class="input-group mb-2">
+                    <input type="email" id="txtCorreo" class="form-control" placeholder="Correo Electrónico">
+                    <button type="button" id="btnPedirCodigo" class="btn btn-secondary">Enviar Código</button>
+                </div>
+                <div class="input-group mb-3">
+                    <input type="text" id="txtCodigo" class="form-control" placeholder="Código Email recibido">
+                    <button type="button" id="btnVerificar" class="btn btn-outline-success">Verificar</button>
+                </div>
+                <p id="msgCodigo" class="msg-error mb-3"></p>
+
+                <label class="form-label text-muted mt-2">Verificación de Teléfono</label>
+                <div class="input-group mb-2">
+                    <input type="tel" id="txtTelefono" class="form-control" placeholder="Número celular (10 dígitos)">
+                    <button type="button" id="btnPedirCodigoTel" class="btn btn-secondary">Enviar SMS</button>
+                </div>
+                <div class="input-group mb-3">
+                    <input type="text" id="txtCodigoTel" class="form-control" placeholder="Código SMS recibido">
+                    <button type="button" id="btnVerificarTel" class="btn btn-outline-success">Verificar</button>
+                </div>
+                <p id="msgCodigoTel" class="msg-error mb-3"></p>
+
+                <label class="form-label text-muted mt-2">Datos Generales</label>
+                <select id="ddlSangre" class="form-control" required>
+                    <option value="">Tipo de Sangre</option>
+                    <option value="O+">O+</option> <option value="O-">O-</option>
+                    <option value="A+">A+</option> <option value="A-">A-</option>
+                    <option value="B+">B+</option> <option value="B-">B-</option>
+                    <option value="AB+">AB+</option> <option value="AB-">AB-</option>
+                </select>
+                <input type="password" id="txtPass" class="form-control" placeholder="Contraseña" required>
+                <input type="password" id="txtConfirm" class="form-control" placeholder="Confirmar Contraseña" required>
+
+                <button type="submit" id="btnRegistrar" class="btn btn-brand w-100 mt-3" disabled>Registrarme</button>
+            </form>
+            <div class="text-center mt-3">
+                <a href="index.html" class="text-brand">Ya tengo cuenta</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/core/database.js"></script>
+    <script src="js/core/communication.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
