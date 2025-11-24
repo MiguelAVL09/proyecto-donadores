@@ -2,45 +2,69 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Inicio - Donadores</title>
+    <title>Dashboard - Donadores</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="css/main.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
+<body id="page-dashboard">
+    
     <div class="sidebar">
         <h3 class="text-center text-white mb-4">🩸 Donadores</h3>
+        
+        <div class="text-center text-white mb-4 px-3">
+            <div class="bg-dark rounded p-3 border border-secondary">
+                <small class="text-muted">Rango Actual</small>
+                <h5 id="lblNivel" class="fw-bold text-warning my-1">Cargando...</h5>
+                <small id="lblPuntos" class="text-white">0 XP</small>
+            </div>
+        </div>
+
         <a href="dashboard.html" class="active">Inicio</a>
         <a href="perfil.html">Mi Perfil</a>
         <a href="notificaciones.html">Notificaciones</a>
         <a href="solicitudes.html">Solicitar Sangre</a>
-        <a href="#" id="btnLogout" class="mt-auto mb-4 text-danger">Cerrar Sesión</a>
+        <a href="mapa.html">Mapa de Héroes</a> <a href="#" id="btnLogout" class="mt-auto mb-4 text-danger">Cerrar Sesión</a>
     </div>
 
     <div class="content-wrapper">
-        <h1>Bienvenido a tu Panel</h1>
-        <p class="lead">Desde aquí puedes gestionar tus donaciones y ayudar a la comunidad.</p>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Panel de Control</h1>
+            <span id="lblBienvenida" class="h5 text-muted">Bienvenido</span>
+        </div>
 
-        <div class="row mt-5">
-            <div class="col-md-4">
-                <div class="card p-4 text-center shadow-sm">
-                    <h3>Solicitar Sangre</h3>
-                    <p>Si tienes una urgencia, notifica a la comunidad.</p>
-                    <a href="solicitudes.html" class="btn btn-brand">Ir</a>
+        <div class="row mb-4">
+            <div class="col-md-4 mb-3">
+                <div class="card-custom p-4 text-center mt-0 h-100 border-start border-5 border-danger shadow-sm">
+                    <h3>Solicitar Ayuda</h3>
+                    <p class="text-muted">¿Tienes una emergencia? Notifica a la comunidad ahora.</p>
+                    <a href="solicitudes.html" class="btn btn-brand w-100">Pedir Sangre</a>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="card p-4 text-center shadow-sm">
-                    <h3>Notificaciones</h3>
-                    <p>Revisa si alguien necesita tu tipo de sangre.</p>
-                    <a href="notificaciones.html" class="btn btn-secondary">Ver</a>
+
+            <div class="col-md-4 mb-3">
+                <div class="card-custom p-4 text-center mt-0 h-100 border-start border-5 border-success shadow-sm">
+                    <h3>Mis Notificaciones</h3>
+                    <p class="text-muted">Revisa si alguien necesita tu tipo de sangre hoy.</p>
+                    <a href="notificaciones.html" class="btn btn-secondary w-100">Ver Bandeja</a>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <div class="card-custom p-3 text-center mt-0 h-100 border-start border-5 border-info shadow-sm">
+                    <h5>Estadísticas Globales</h5>
+                    <p class="text-muted small">Donadores registrados por tipo</p>
+                    
+                    <div style="height: 180px; display: flex; justify-content: center;">
+                        <canvas id="graficaSangre"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
     <script type="module" src="js/core/database.js"></script>
-
     <script src="js/core/communication.js"></script>
-
     <script src="js/app.js" defer></script>
 </body>
 </html>
