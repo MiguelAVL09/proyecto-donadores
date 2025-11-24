@@ -13,20 +13,52 @@
         <a href="perfil.html" class="active">Mi Perfil</a>
         <a href="notificaciones.html">Notificaciones</a>
         <a href="solicitudes.html">Solicitar Sangre</a>
+        <a href="mapa.html">Mapa de Héroes</a>
         <a href="#" id="btnLogout" class="mt-auto mb-4 text-danger">Cerrar Sesión</a>
     </div>
 
     <div class="content-wrapper">
-        <h2>Mi Información</h2>
-        <div class="card-custom" style="max-width: 600px;">
-            <p>Aquí puedes editar tus datos (Funcionalidad pendiente de migrar completamente).</p>
-            <button class="btn btn-secondary">Regresar</button>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card-custom p-4">
+                    <div class="text-center mb-4">
+                        <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" width="100" class="rounded-circle mb-2">
+                        <h3 id="lblNombre">Cargando...</h3>
+                        <span id="lblSangre" class="badge bg-danger fs-6">Tipo --</span>
+                    </div>
+                    <form>
+                        <label class="text-muted">Correo</label>
+                        <input type="text" id="txtCorreo" class="form-control mb-3" readonly>
+                        
+                        <label class="text-muted">Teléfono</label>
+                        <input type="text" id="txtTelefono" class="form-control mb-3" readonly>
+                        
+                        <label class="text-muted">CURP</label>
+                        <input type="text" id="txtCURP" class="form-control mb-3" readonly>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card-custom p-4 h-100">
+                    <h3 class="mb-4">🏆 Mis Logros</h3>
+                    
+                    <div class="bg-light p-3 rounded mb-4 text-center">
+                        <h5 class="text-muted">Nivel Actual</h5>
+                        <h2 id="lblNivel" class="fw-bold text-primary">--</h2>
+                        <h5 id="lblPuntos" class="text-muted">0 XP</h5>
+                    </div>
+
+                    <h5>Medallero</h5>
+                    <div id="containerMedallas" class="row text-center mt-3">
+                        </div>
+                </div>
+            </div>
         </div>
     </div>
+
     <script type="module" src="js/core/database.js"></script>
-
     <script src="js/core/communication.js"></script>
-
     <script src="js/app.js" defer></script>
 </body>
 </html>

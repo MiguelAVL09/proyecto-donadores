@@ -1,8 +1,8 @@
 // js/core/database.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, set, get, child, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, set, get, child, update, push, onValue, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-// ⚠️ IMPORTANTE: Vuelve a copiar esto de tu consola de Firebase
+// ⚠️ PEGA AQUÍ TUS CREDENCIALES DE FIREBASE (Las mismas que ya tenías)
 const firebaseConfig = {
     apiKey: "AIzaSyDiJu8tonqFk1-LZTxe5nN8vAMU9vapicU",
     authDomain: "donadores-1f1d9.firebaseapp.com",
@@ -13,83 +13,78 @@ const firebaseConfig = {
     appId: "1:196349053056:web:b3e98a6ee7a8d486f3fe65"
 };
 
-// Inicializar Firebase
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 window.DB = {
-    // Guardar usuario (Usamos CURP como ID)
+    // ... (Mantén saveUser, findUser, exists, updateUser, getAllUsers igual que antes) ...
     saveUser: async (user) => {
         try {
             const userId = user.curp.replace(/[^a-zA-Z0-9]/g, '');
             await set(ref(db, 'users/' + userId), user);
-            console.log("✅ Usuario guardado en la nube");
             return true;
-        } catch (error) {
-            console.error("Error guardando:", error);
-            alert("Error al guardar en la nube: " + error.message);
-            return false;
-        }
+        } catch (error) { console.error(error); return false; }
     },
-
-    // Buscar usuario (Login)
-    findUser: async (curp, password) => {
+    findUser: async (curp, pass) => {
         try {
-            const dbRef = ref(db);
             const userId = curp.replace(/[^a-zA-Z0-9]/g, '');
-            const snapshot = await get(child(dbRef, `users/${userId}`));
-            
-            if (snapshot.exists()) {
-                const user = snapshot.val();
-                if (user.password === password) return user;
-            }
+            const s = await get(child(ref(db), `users/${userId}`));
+            if(s.exists() && s.val().password === pass) return s.val();
             return null;
-        } catch (error) {
-            console.error("Error buscando usuario:", error);
-            return null;
-        }
+        } catch(e) { return null; }
     },
-
-    // Verificar si existe (Registro)
     exists: async (curp, correo) => {
-        try {
-            const dbRef = ref(db);
-            const snapshot = await get(child(dbRef, 'users'));
-            
-            if (snapshot.exists()) {
-                const users = snapshot.val();
-                for (let id in users) {
-                    if (users[id].curp === curp || users[id].correo === correo) return true;
-                }
-            }
-            return false;
-        } catch (error) {
-            console.error(error);
-            return false;
-        }
+        const s = await get(child(ref(db), 'users'));
+        if(!s.exists()) return false;
+        const u = s.val();
+        for(let k in u) if(u[k].curp === curp || u[k].correo === correo) return true;
+        return false;
     },
-
-    // Actualizar usuario
     updateUser: async (user) => {
-        try {
-            const userId = user.curp.replace(/[^a-zA-Z0-9]/g, '');
-            await update(ref(db, 'users/' + userId), user);
-            sessionStorage.setItem('currentUser', JSON.stringify(user));
-        } catch (e) {
-            console.error("Error actualizando:", e);
-        }
+        const userId = user.curp.replace(/[^a-zA-Z0-9]/g, '');
+        await update(ref(db, 'users/' + userId), user);
+        sessionStorage.setItem('currentUser', JSON.stringify(user));
+    },
+    getAllUsers: async () => {
+        const s = await get(child(ref(db), 'users'));
+        return s.exists() ? Object.values(s.val()) : [];
     },
 
-    // Obtener todos (Para solicitudes)
-    getAllUsers: async () => {
-        try {
-            const dbRef = ref(db);
-            const snapshot = await get(child(dbRef, 'users'));
-            if (snapshot.exists()) return Object.values(snapshot.val());
-            return [];
-        } catch (error) {
-            console.error(error);
-            return [];
-        }
+    // --- NUEVAS FUNCIONES PARA EL CHAT ---
+    
+    // Crear un nuevo chat y devolver su ID
+    createChat: async (user1, user2) => {
+        const chatRef = push(ref(db, 'chats')); // Genera ID único
+        await set(chatRef, {
+            participants: { [user1]: true, [user2]: true },
+            createdAt: Date.now()
+        });
+        return chatRef.key;
+    },
+
+    // Enviar mensaje
+    sendMessage: async (chatId, senderName, text) => {
+        const messagesRef = ref(db, `chats/${chatId}/messages`);
+        await push(messagesRef, {
+            sender: senderName,
+            text: text,
+            timestamp: Date.now()
+        });
+    },
+
+    // Escuchar mensajes en tiempo real (Live)
+    listenForMessages: (chatId, callback) => {
+        const messagesRef = ref(db, `chats/${chatId}/messages`);
+        onValue(messagesRef, (snapshot) => {
+            const data = snapshot.val();
+            const msgs = data ? Object.values(data) : [];
+            callback(msgs);
+        });
+    },
+
+    // Dejar de escuchar (para no saturar memoria)
+    stopListening: (chatId) => {
+        const messagesRef = ref(db, `chats/${chatId}/messages`);
+        off(messagesRef);
     }
 };
