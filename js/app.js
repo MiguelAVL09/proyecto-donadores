@@ -1,10 +1,8 @@
-// js/app.js - VERSIÓN FINAL INTEGRADA
+// js/app.js - PROYECTO FINAL COMPLETO
 
 // ==========================================
-// 1. INICIALIZACIÓN Y SESIÓN
+// 1. INICIALIZACIÓN
 // ==========================================
-
-// Inicializar servicios de comunicación
 if (typeof Comm !== 'undefined') { Comm.init(); }
 
 const Session = {
@@ -15,10 +13,10 @@ const Session = {
 };
 
 // ==========================================
-// 2. LÓGICA DE PÁGINAS
+// 2. LÓGICA DE PÁGINAS (DONADORES)
 // ==========================================
 
-// --- PÁGINA DE REGISTRO ---
+// --- REGISTRO ---
 if (document.getElementById('page-registro')) {
     console.log("✅ Registro cargado");
     let codigoEmail = null, emailValidado = false;
@@ -31,10 +29,9 @@ if (document.getElementById('page-registro')) {
         const btn = document.getElementById('btnPedirCodigo');
         
         if (!correo || !nombre) return alert("Falta nombre o correo.");
-        
         btn.innerText = "Enviando..."; btn.disabled = true;
-        codigoEmail = Math.floor(1000 + Math.random() * 9000).toString();
         
+        codigoEmail = Math.floor(1000 + Math.random() * 9000).toString();
         const exito = await Comm.enviarCorreoVerificacion(correo, nombre, codigoEmail);
         
         if (exito) {
@@ -57,14 +54,12 @@ if (document.getElementById('page-registro')) {
     document.getElementById('btnPedirCodigoTel')?.addEventListener('click', async () => {
         const tel = document.getElementById('txtTelefono').value;
         const btn = document.getElementById('btnPedirCodigoTel');
-        
         if (tel.length < 10) return alert("Número inválido.");
         
         btn.innerText = "Enviando..."; btn.disabled = true;
         codigoTel = Math.floor(1000 + Math.random() * 9000).toString();
         
         await Comm.simularEnvioTelefono(tel, codigoTel);
-        
         alert(`🔔 SIMULACIÓN SMS: Tu código es ${codigoTel}`);
         document.getElementById('msgCodigoTel').innerText = "✅ Enviado.";
         document.getElementById('msgCodigoTel').className = "msg-success";
@@ -86,7 +81,7 @@ if (document.getElementById('page-registro')) {
         }
     }
 
-    // C) Submit Registro
+    // C) Submit
     document.getElementById('formRegistro')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const pass = document.getElementById('txtPass').value;
@@ -104,7 +99,7 @@ if (document.getElementById('page-registro')) {
             telefono: document.getElementById('txtTelefono').value,
             sangre: document.getElementById('ddlSangre').value,
             password: pass, aceptoAviso: false, cuestionario: false, notificaciones: [],
-            puntos: 0, nivel: "Novato"
+            rol: 'donador', puntos: 0, nivel: "Novato"
         };
 
         await DB.saveUser(newUser);
@@ -114,20 +109,24 @@ if (document.getElementById('page-registro')) {
     });
 }
 
-// --- PÁGINA DE LOGIN ---
+// --- LOGIN (REDIRECCIÓN POR ROLES) ---
 if (document.getElementById('page-login')) {
     document.getElementById('formLogin')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = document.querySelector('button[type="submit"]');
-        btn.innerText = "Buscando..."; btn.disabled = true;
+        btn.innerText = "Verificando..."; btn.disabled = true;
 
         const user = await DB.findUser(document.getElementById('txtCURP').value, document.getElementById('txtPass').value);
         
         if (user) {
             Session.login(user);
-            if (!user.aceptoAviso) window.location.href = 'aviso.html';
-            else if (!user.cuestionario) window.location.href = 'cuestionario.html';
-            else window.location.href = 'dashboard.html';
+            if (user.rol === 'admin') window.location.href = 'admin-dashboard.html';
+            else if (user.rol === 'doctor') window.location.href = 'doctor-dashboard.html';
+            else {
+                if (!user.aceptoAviso) window.location.href = 'aviso.html';
+                else if (!user.cuestionario) window.location.href = 'cuestionario.html';
+                else window.location.href = 'dashboard.html';
+            }
         } else {
             alert("Credenciales incorrectas");
             btn.innerText = "Entrar"; btn.disabled = false;
@@ -135,17 +134,18 @@ if (document.getElementById('page-login')) {
     });
 }
 
-// --- PÁGINA DASHBOARD (GRÁFICAS Y NIVEL) ---
+// --- DASHBOARD ---
 if (document.getElementById('page-dashboard')) {
     Session.protect();
     const user = Session.getUser();
     
     document.getElementById('lblBienvenida').innerText = `Hola, ${user.nombre}`;
-    document.getElementById('lblNivel').innerText = user.nivel || "Novato";
-    document.getElementById('lblPuntos').innerText = `${user.puntos || 0} XP`;
+    if(document.getElementById('lblNivel')) {
+        document.getElementById('lblNivel').innerText = user.nivel || "Novato";
+        document.getElementById('lblPuntos').innerText = `${user.puntos || 0} XP`;
+    }
 
-    // Gráfica Chart.js
-    cargarGrafica();
+    if(document.getElementById('graficaSangre')) cargarGrafica();
 
     async function cargarGrafica() {
         const users = await DB.getAllUsers();
@@ -158,10 +158,7 @@ if (document.getElementById('page-dashboard')) {
                 type: 'doughnut',
                 data: {
                     labels: Object.keys(conteo),
-                    datasets: [{
-                        data: Object.values(conteo),
-                        backgroundColor: ['#b30000', '#ff4d4d', '#990000', '#ff9999', '#800000', '#ffcccc']
-                    }]
+                    datasets: [{ data: Object.values(conteo), backgroundColor: ['#b30000', '#ff4d4d', '#990000', '#ff9999', '#800000', '#ffcccc'] }]
                 },
                 options: { responsive: true, plugins: { legend: { display: false } } }
             });
@@ -169,211 +166,258 @@ if (document.getElementById('page-dashboard')) {
     }
 }
 
-// --- PÁGINA PERFIL (MEDALLAS) ---
+// --- MAPA (GEOLOCALIZACIÓN) ---
+if (document.getElementById('page-mapa')) {
+    Session.protect();
+    const user = Session.getUser();
+    const map = L.map('map').setView([19.4326, -99.1332], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            map.setView([lat, lng], 14);
+            L.marker([lat, lng]).addTo(map).bindPopup("<b>Tú</b>").openPopup();
+            await DB.updateLocation(user, lat, lng);
+        });
+    }
+
+    cargarOtrosUsuarios();
+    async function cargarOtrosUsuarios() {
+        const users = await DB.getAllUsers();
+        users.forEach(u => {
+            if (u.curp !== user.curp && u.lat && u.lng) {
+                L.marker([u.lat, u.lng]).addTo(map)
+                    .bindPopup(`<b>Héroe Donador</b><br>Tipo: ${u.sangre}<br>Nivel: ${u.nivel || 'Novato'}`);
+            }
+        });
+        L.marker([19.4000, -99.1500]).addTo(map).bindPopup("🏥 <b>Hospital Central</b>").openPopup();
+    }
+}
+
+// --- SOLICITUDES (LITROS Y ANONIMATO) ---
+if (document.getElementById('page-solicitudes')) {
+    document.getElementById('btnLanzarSolicitud')?.addEventListener('click', async () => {
+        const tipo = document.getElementById('ddlTipoSolicitud').value;
+        const litros = parseFloat(document.getElementById('txtLitros').value);
+        const user = Session.getUser();
+
+        if (!litros || litros <= 0) return alert("Ingresa cantidad válida.");
+
+        const donadoresNecesarios = Math.ceil(litros / 0.45); // 450ml por persona
+
+        const requestData = {
+            tipo: tipo,
+            litros: litros,
+            faltantes: donadoresNecesarios,
+            hospital: "Hospital General Regional",
+            fecha: new Date().toLocaleDateString(),
+            solicitanteId: user.curp 
+        };
+
+        await DB.createGlobalRequest(requestData);
+        alert(`Solicitud creada anónimamente.\nSe requieren ${donadoresNecesarios} personas.`);
+        window.location.href = 'notificaciones.html';
+    });
+}
+
+// --- NOTIFICACIONES (PIZARRA CENTRAL) ---
+if (document.getElementById('page-notificaciones')) {
+    const user = Session.getUser();
+    const container = document.getElementById('listaNotificaciones');
+
+    DB.listenToRequests((requests) => {
+        container.innerHTML = "";
+        const visibles = requests.filter(r => r.solicitanteId !== user.curp);
+
+        if (visibles.length === 0) {
+            container.innerHTML = "<p>No hay solicitudes activas.</p>";
+            return;
+        }
+
+        visibles.forEach(req => {
+            container.innerHTML += `
+            <div class="card p-3 mb-3 border-danger shadow-sm">
+                <div class="d-flex justify-content-between">
+                    <h5 class="text-danger">🩸 Se necesita sangre ${req.tipo}</h5>
+                    <span class="badge bg-warning text-dark">${req.faltantes} donadores faltantes</span>
+                </div>
+                <p class="mb-1 text-muted">
+                    Ubicación: ${req.hospital}<br>Meta: ${req.litros}L
+                </p>
+                <button class="btn btn-brand w-100 mt-2" onclick="aceptarDonacion('${req.id}')">Aceptar y Donar</button>
+            </div>`;
+        });
+    });
+
+    window.aceptarDonacion = async (reqId) => {
+        if(confirm("¿Confirmas que irás a donar?")) {
+            const result = await DB.acceptRequest(reqId);
+            if (result) {
+                window.location.href = `chat.html?hospital=${encodeURIComponent(result.hospital)}`;
+            } else {
+                alert("Esta solicitud ya fue completada.");
+            }
+        }
+    };
+}
+
+// --- CHAT BOT (CITAS) ---
+if (document.getElementById('page-chat')) {
+    Session.protect();
+    const user = Session.getUser();
+    const params = new URLSearchParams(window.location.search);
+    const hospital = params.get('hospital') || "Centro de Salud";
+    const chatBox = document.getElementById('chatBox');
+    let paso = 0;
+
+    setTimeout(() => botSay(`Hola ${user.nombre}, soy el asistente virtual.`), 500);
+    setTimeout(() => botSay(`Veo que quieres donar en: <b>${hospital}</b>. ¿Es correcto? (Responde Sí)`), 1500);
+
+    document.getElementById('btnEnviar').addEventListener('click', () => {
+        const input = document.getElementById('txtMensaje');
+        const msg = input.value.trim();
+        if (!msg) return;
+        userSay(msg);
+        input.value = "";
+        setTimeout(() => procesarRespuesta(msg), 1000);
+    });
+
+    function procesarRespuesta(msg) {
+        const m = msg.toLowerCase();
+        if (paso === 0) {
+            if (m.includes('si') || m.includes('sí')) {
+                botSay("Excelente. Te asignamos el siguiente horario:");
+                const f = new Date(); f.setDate(f.getDate() + 1);
+                botSay(`📅 <b>${f.toLocaleDateString()}</b> 08:00 AM<br>📍 ${hospital}`);
+                botSay("¿Confirmas tu asistencia? (Escribe 'Confirmar')");
+                paso = 1;
+            } else {
+                botSay("Entiendo. Cancelaremos el proceso.");
+                paso = 99;
+            }
+        } else if (paso === 1) {
+            if (m.includes('confirm')) {
+                botSay("¡Cita agendada! Gracias por ser un héroe. 🎉");
+                botSay(`<a href="dashboard.html" class="btn btn-sm btn-outline-dark mt-2">Volver al Inicio</a>`);
+                paso = 2;
+            } else botSay("Por favor escribe 'Confirmar'.");
+        }
+    }
+
+    function botSay(h) { chatBox.innerHTML += `<div class="msg msg-other mb-2 bg-light p-2 rounded w-75 border">🤖 ${h}</div>`; chatBox.scrollTop = chatBox.scrollHeight; }
+    function userSay(t) { chatBox.innerHTML += `<div class="msg msg-me mb-2 bg-primary text-white p-2 rounded w-75 ms-auto text-end">${t}</div>`; chatBox.scrollTop = chatBox.scrollHeight; }
+}
+
+// ==========================================
+// 3. LÓGICA DE ROLES (DOCTOR Y ADMIN)
+// ==========================================
+
+// --- DOCTOR ---
+if (document.getElementById('page-doctor')) {
+    Session.protect();
+    const currentUser = Session.getUser();
+    if(currentUser.rol !== 'doctor') window.location.href = 'index.html';
+
+    cargarPacientes();
+
+    async function cargarPacientes() {
+        const users = await DB.getAllUsers();
+        const tabla = document.getElementById('tablaPacientes');
+        tabla.innerHTML = "";
+        const pacientes = users.filter(u => u.cuestionario === true && u.rol === 'donador');
+
+        if(pacientes.length === 0) tabla.innerHTML = "<tr><td colspan='5' class='text-center p-3'>No hay pacientes pendientes.</td></tr>";
+
+        pacientes.forEach(p => {
+            tabla.innerHTML += `
+                <tr>
+                    <td>${p.nombre}</td>
+                    <td><span class="badge bg-danger">${p.sangre}</span></td>
+                    <td>${p.telefono}</td>
+                    <td><span class="badge bg-success">Apto</span></td>
+                    <td><button class="btn btn-sm btn-primary" onclick="confirmarDonacion('${p.curp}')">✅ Confirmar Extracción</button></td>
+                </tr>`;
+        });
+    }
+
+    window.confirmarDonacion = async (curpPaciente) => {
+        if(confirm("¿Confirmar donación exitosa?")) {
+            const users = await DB.getAllUsers();
+            const paciente = users.find(u => u.curp === curpPaciente);
+            if(paciente) {
+                paciente.puntos = (paciente.puntos || 0) + 100;
+                paciente.cuestionario = false; 
+                await DB.updateUser(paciente);
+                alert("Puntos asignados al paciente.");
+                cargarPacientes();
+            }
+        }
+    };
+}
+
+// --- ADMIN ---
+if (document.getElementById('page-admin')) {
+    Session.protect();
+    const currentUser = Session.getUser();
+    if(currentUser.rol !== 'admin') window.location.href = 'index.html';
+
+    cargarAdminData();
+
+    async function cargarAdminData() {
+        const users = await DB.getAllUsers();
+        const inventario = { "O+": 12, "O-": 5, "A+": 8, "A-": 2, "B+": 4, "AB+": 1 };
+        
+        new Chart(document.getElementById('graficaInventario'), {
+            type: 'bar',
+            data: {
+                labels: Object.keys(inventario),
+                datasets: [{ label: 'Bolsas Disponibles', data: Object.values(inventario), backgroundColor: '#d63384' }]
+            }
+        });
+
+        const lista = document.getElementById('listaUsuariosAdmin');
+        lista.innerHTML = "";
+        users.forEach(u => {
+            lista.innerHTML += `
+                <div class="d-flex justify-content-between border-bottom py-2">
+                    <span>${u.nombre} (${u.rol || 'donador'})</span>
+                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarUsuario('${u.curp}')">Dar de Baja</button>
+                </div>`;
+        });
+    }
+    window.eliminarUsuario = (curp) => alert("Función en mantenimiento.");
+}
+
+// --- PERFIL ---
 if (document.getElementById('page-perfil')) {
     Session.protect();
     const user = Session.getUser();
-
-    // Cargar Datos
     document.getElementById('lblNombre').innerText = user.nombre;
     document.getElementById('lblSangre').innerText = "Tipo " + user.sangre;
     document.getElementById('txtCorreo').value = user.correo;
     document.getElementById('txtTelefono').value = user.telefono;
     document.getElementById('txtCURP').value = user.curp;
 
-    // Gamificación
     const puntos = user.puntos || 0;
     document.getElementById('lblNivel').innerText = user.nivel || "Novato";
     document.getElementById('lblPuntos').innerText = `${puntos} XP`;
 
-    // Renderizar Medallas
     const container = document.getElementById('containerMedallas');
     if(container){
         let html = "";
         html += cardMedalla("🌱", "Novato", "Registro completado", true);
-        html += cardMedalla("🩸", "Primer Donante", "1 ayuda confirmada", puntos >= 50);
-        html += cardMedalla("🦸", "Héroe", "Nivel Héroe alcanzado", puntos >= 100);
-        html += cardMedalla("👑", "Leyenda", "500 XP acumulados", puntos >= 500);
+        html += cardMedalla("🩸", "Primer Donante", "1 donación confirmada", puntos >= 100);
+        html += cardMedalla("🦸", "Héroe", "Nivel Héroe alcanzado", puntos >= 300);
         container.innerHTML = html;
     }
-
     function cardMedalla(icono, titulo, desc, desbloqueada) {
         const color = desbloqueada ? "text-dark" : "text-muted opacity-50";
         const bg = desbloqueada ? "bg-warning-subtle" : "bg-light";
         const check = desbloqueada ? "✅" : "🔒";
-        return `
-            <div class="col-6 mb-3">
-                <div class="${bg} p-3 rounded h-100 ${color} border">
-                    <div class="fs-1">${icono}</div>
-                    <div class="fw-bold">${titulo}</div>
-                    <small>${desc}</small><br><small>${check}</small>
-                </div>
-            </div>`;
+        return `<div class="col-6 mb-3"><div class="${bg} p-3 rounded h-100 ${color} border"><div class="fs-1">${icono}</div><div class="fw-bold">${titulo}</div><small>${desc}</small><br><small>${check}</small></div></div>`;
     }
-}
-
-// --- PÁGINA MAPA (LEAFLET) ---
-if (document.getElementById('page-mapa')) {
-    Session.protect();
-    const map = L.map('map').setView([19.4326, -99.1332], 12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
-
-    cargarMarcadores();
-    async function cargarMarcadores() {
-        const users = await DB.getAllUsers();
-        users.forEach(u => {
-            const lat = 19.4326 + (Math.random() - 0.5) * 0.1;
-            const lng = -99.1332 + (Math.random() - 0.5) * 0.1;
-            L.marker([lat, lng]).addTo(map)
-                .bindPopup(`<b>${u.nombre}</b><br>Tipo: ${u.sangre}<br>Nivel: ${u.nivel || 'Novato'}`);
-        });
-        L.marker([19.4000, -99.1500]).addTo(map).bindPopup("🏥 <b>Hospital General</b><br>Requiere Sangre O+").openPopup();
-    }
-}
-
-// --- SOLICITUDES ---
-if (document.getElementById('page-solicitudes')) {
-    document.querySelectorAll('.btn-pedir').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const tipo = e.target.getAttribute('data-tipo');
-            const currentUser = Session.getUser();
-            const allUsers = await DB.getAllUsers();
-            let count = 0; const updates = [];
-
-            allUsers.forEach(u => {
-                if (u.curp !== currentUser.curp) {
-                    if(!u.notificaciones) u.notificaciones = [];
-                    // AGREGAMOS 'deCurp' PARA PODER CREAR EL CHAT DESPUÉS
-                    u.notificaciones.push({
-                        id: Date.now(),
-                        msg: `Solicitud urgente de sangre ${tipo}`,
-                        de: currentUser.nombre,
-                        deCurp: currentUser.curp, 
-                        type: 'REQUEST',
-                        fecha: new Date().toLocaleDateString()
-                    });
-                    updates.push(DB.updateUser(u));
-                    count++;
-                }
-            });
-            await Promise.all(updates);
-            alert(`Solicitud enviada a ${count} donadores.`);
-        });
-    });
-}
-
-// --- NOTIFICACIONES (CHAT Y PUNTOS) ---
-if (document.getElementById('page-notificaciones')) {
-    const user = Session.getUser();
-    const container = document.getElementById('listaNotificaciones');
-    
-    if (!user.notificaciones || user.notificaciones.length === 0) {
-        container.innerHTML = "<p>No hay notificaciones.</p>";
-    } else {
-        user.notificaciones.forEach((n, i) => {
-            // Diferenciar Invitación a Chat vs Solicitud Normal
-            if (n.type === 'CHAT_INVITE') {
-                container.innerHTML += `
-                <div class="card p-3 mb-2 border-primary shadow-sm">
-                    <h5 class="text-primary">💬 ${n.msg}</h5>
-                    <small>De: ${n.de}</small>
-                    <a href="chat.html?id=${n.chatId}" class="btn btn-primary mt-2">Entrar al Chat</a>
-                    <button class="btn btn-sm btn-link text-danger" onclick="borrarNotif(${i})">Borrar</button>
-                </div>`;
-            } else {
-                container.innerHTML += `
-                <div class="card p-3 mb-2 shadow-sm">
-                    <h5>${n.msg}</h5> <small>De: ${n.de} | ${n.fecha}</small>
-                    <div class="mt-2">
-                        <button class="btn btn-sm btn-success" onclick="responder(true, ${i}, '${n.deCurp || ''}')">Aceptar</button>
-                        <button class="btn btn-sm btn-danger" onclick="responder(false, ${i})">Rechazar</button>
-                    </div>
-                </div>`;
-            }
-        });
-    }
-
-    // Responder Solicitud
-    window.responder = async (acepta, index, solicitanteCurp) => {
-        const u = Session.getUser();
-        
-        if (acepta) {
-            // 1. Gamificación
-            if (!u.puntos) u.puntos = 0;
-            u.puntos += 50;
-            let nuevoNivel = "Novato";
-            if (u.puntos >= 100) nuevoNivel = "Héroe de Vida";
-            if (u.puntos >= 500) nuevoNivel = "Leyenda";
-            
-            if ((u.nivel || "Novato") !== nuevoNivel) {
-                alert(`🎉 ¡SUBISTE DE NIVEL!\nAhora eres: ${nuevoNivel}`);
-                u.nivel = nuevoNivel;
-            }
-
-            // 2. Crear Chat (si tenemos el ID del solicitante)
-            if (solicitanteCurp) {
-                const chatId = await DB.createChat(u.curp, solicitanteCurp);
-                alert("✅ Solicitud Aceptada. Creando sala de chat...");
-                
-                // Redirigir al usuario actual al chat
-                window.location.href = `chat.html?id=${chatId}`;
-                
-                // OPCIONAL: Enviar invitación al solicitante para que también entre (requiere buscarlo en DB)
-                // Esto se haría buscando al usuario 'solicitanteCurp' y poniéndole una notif 'CHAT_INVITE'
-            }
-        }
-
-        u.notificaciones.splice(index, 1);
-        await DB.updateUser(u);
-        if (!acepta) location.reload();
-    };
-
-    window.borrarNotif = async(i) => {
-        const u = Session.getUser();
-        u.notificaciones.splice(i, 1);
-        await DB.updateUser(u);
-        location.reload();
-    };
-}
-
-// --- PÁGINA CHAT (REALTIME) ---
-if (document.getElementById('page-chat')) {
-    Session.protect();
-    const user = Session.getUser();
-    const params = new URLSearchParams(window.location.search);
-    const chatId = params.get('id');
-
-    if (!chatId) { alert("Error de chat."); window.location.href = 'dashboard.html'; }
-
-    const chatBox = document.getElementById('chatBox');
-
-    // Escuchar mensajes
-    DB.listenForMessages(chatId, (messages) => {
-        chatBox.innerHTML = "";
-        if(messages.length === 0) chatBox.innerHTML = "<p class='text-center text-muted'>Inicio del chat.</p>";
-        
-        messages.forEach(m => {
-            const isMe = m.sender === user.nombre;
-            const clase = isMe ? "msg-me" : "msg-other"; // Estilos definidos en chat.html
-            const hora = new Date(m.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            
-            chatBox.innerHTML += `
-                <div class="msg ${clase}">
-                    <strong>${m.sender}</strong><br>
-                    ${m.text}
-                    <div class="text-end" style="font-size:0.7em">${hora}</div>
-                </div>`;
-        });
-        chatBox.scrollTop = chatBox.scrollHeight;
-    });
-
-    // Enviar
-    document.getElementById('btnEnviar').addEventListener('click', async () => {
-        const txt = document.getElementById('txtMensaje');
-        if (txt.value.trim() === "") return;
-        await DB.sendMessage(chatId, user.nombre, txt.value);
-        txt.value = "";
-    });
 }
 
 // --- AUXILIARES ---

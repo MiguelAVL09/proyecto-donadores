@@ -13,36 +13,60 @@
         <a href="perfil.html">Mi Perfil</a>
         <a href="notificaciones.html">Notificaciones</a>
         <a href="solicitudes.html" class="active">Solicitar Sangre</a>
+        <a href="mapa.html">Mapa de Héroes</a>
         <a href="#" id="btnLogout" class="mt-auto mb-4 text-danger">Cerrar Sesión</a>
     </div>
 
     <div class="content-wrapper">
-        <h2 class="text-center mb-5">Selecciona el tipo de sangre que necesitas</h2>
-        <div class="row text-center">
-            <div class="col-md-3 mb-4">
-                <div class="card p-4 shadow-sm">
-                    <h3>O+</h3>
-                    <button class="btn btn-brand btn-pedir" data-tipo="O+">Solicitar</button>
+        <h2 class="mb-4 text-brand">Crear Solicitud de Ayuda</h2>
+        
+        <div class="card-custom p-4">
+            <h4 class="mb-3">Detalles de la Solicitud</h4>
+            <p class="text-muted mb-4">
+                Ingresa la cantidad necesaria en litros. El sistema calculará automáticamente 
+                cuántos donadores se requieren (aprox. 450ml por persona).
+            </p>
+            
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="ddlTipoSolicitud" class="form-label fw-bold">Tipo de Sangre</label>
+                    <select id="ddlTipoSolicitud" class="form-select">
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="txtLitros" class="form-label fw-bold">Cantidad Requerida (Litros)</label>
+                    <input type="number" id="txtLitros" class="form-control" placeholder="Ej: 1.5" step="0.45" min="0.45">
+                    <div class="form-text text-muted">1 Unidad estándar ≈ 0.45 Litros</div>
+                </div>
+
+                <div class="col-md-4">
+                    <button id="btnLanzarSolicitud" class="btn btn-brand w-100">
+                        📢 Publicar Solicitud
+                    </button>
                 </div>
             </div>
-            <div class="col-md-3 mb-4">
-                <div class="card p-4 shadow-sm">
-                    <h3>O-</h3>
-                    <button class="btn btn-brand btn-pedir" data-tipo="O-">Solicitar</button>
-                </div>
+        </div>
+
+        <div class="alert alert-warning mt-4 d-flex align-items-center">
+            <span class="fs-3 me-3">🔒</span>
+            <div>
+                <strong>Privacidad:</strong> Esta solicitud aparecerá en la "Pizarra Central" de forma anónima. 
+                Tu nombre solo será visible para los donadores que acepten ayudarte y el sistema de citas.
             </div>
-            <div class="col-md-3 mb-4">
-                <div class="card p-4 shadow-sm">
-                    <h3>A+</h3>
-                    <button class="btn btn-brand btn-pedir" data-tipo="A+">Solicitar</button>
-                </div>
-            </div>
-            </div>
+        </div>
     </div>
+
     <script type="module" src="js/core/database.js"></script>
-
     <script src="js/core/communication.js"></script>
-
     <script src="js/app.js" defer></script>
 </body>
 </html>

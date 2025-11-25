@@ -1,8 +1,8 @@
 // js/core/database.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, set, get, child, update, push, onValue, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, set, get, child, update, push, remove, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-// ⚠️ PEGA AQUÍ TUS CREDENCIALES DE FIREBASE (Las mismas que ya tenías)
+// ⚠️ TUS CREDENCIALES (Consérvalas)
 const firebaseConfig = {
     apiKey: "AIzaSyDiJu8tonqFk1-LZTxe5nN8vAMU9vapicU",
     authDomain: "donadores-1f1d9.firebaseapp.com",
@@ -17,74 +17,51 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 window.DB = {
-    // ... (Mantén saveUser, findUser, exists, updateUser, getAllUsers igual que antes) ...
-    saveUser: async (user) => {
-        try {
-            const userId = user.curp.replace(/[^a-zA-Z0-9]/g, '');
-            await set(ref(db, 'users/' + userId), user);
-            return true;
-        } catch (error) { console.error(error); return false; }
-    },
-    findUser: async (curp, pass) => {
-        try {
-            const userId = curp.replace(/[^a-zA-Z0-9]/g, '');
-            const s = await get(child(ref(db), `users/${userId}`));
-            if(s.exists() && s.val().password === pass) return s.val();
-            return null;
-        } catch(e) { return null; }
-    },
-    exists: async (curp, correo) => {
-        const s = await get(child(ref(db), 'users'));
-        if(!s.exists()) return false;
-        const u = s.val();
-        for(let k in u) if(u[k].curp === curp || u[k].correo === correo) return true;
-        return false;
-    },
-    updateUser: async (user) => {
+    // ... (Mantén saveUser, findUser, exists, updateUser, getAllUsers IGUAL que antes) ...
+    // Solo agrega/reemplaza estas nuevas funciones:
+
+    // 1. Guardar Ubicación GPS Real
+    updateLocation: async (user, lat, lng) => {
         const userId = user.curp.replace(/[^a-zA-Z0-9]/g, '');
-        await update(ref(db, 'users/' + userId), user);
-        sessionStorage.setItem('currentUser', JSON.stringify(user));
-    },
-    getAllUsers: async () => {
-        const s = await get(child(ref(db), 'users'));
-        return s.exists() ? Object.values(s.val()) : [];
+        await update(ref(db, 'users/' + userId), { lat: lat, lng: lng });
     },
 
-    // --- NUEVAS FUNCIONES PARA EL CHAT ---
-    
-    // Crear un nuevo chat y devolver su ID
-    createChat: async (user1, user2) => {
-        const chatRef = push(ref(db, 'chats')); // Genera ID único
-        await set(chatRef, {
-            participants: { [user1]: true, [user2]: true },
-            createdAt: Date.now()
-        });
-        return chatRef.key;
+    // 2. Crear Solicitud Global (Pizarra Central)
+    createGlobalRequest: async (requestData) => {
+        const reqRef = push(ref(db, 'global_requests')); // ID único
+        await set(reqRef, requestData);
+        return reqRef.key;
     },
 
-    // Enviar mensaje
-    sendMessage: async (chatId, senderName, text) => {
-        const messagesRef = ref(db, `chats/${chatId}/messages`);
-        await push(messagesRef, {
-            sender: senderName,
-            text: text,
-            timestamp: Date.now()
-        });
-    },
-
-    // Escuchar mensajes en tiempo real (Live)
-    listenForMessages: (chatId, callback) => {
-        const messagesRef = ref(db, `chats/${chatId}/messages`);
-        onValue(messagesRef, (snapshot) => {
+    // 3. Escuchar Solicitudes Activas (Tiempo Real)
+    listenToRequests: (callback) => {
+        const reqRef = ref(db, 'global_requests');
+        onValue(reqRef, (snapshot) => {
             const data = snapshot.val();
-            const msgs = data ? Object.values(data) : [];
-            callback(msgs);
+            const requests = data ? Object.entries(data).map(([key, value]) => ({ id: key, ...value })) : [];
+            callback(requests);
         });
     },
 
-    // Dejar de escuchar (para no saturar memoria)
-    stopListening: (chatId) => {
-        const messagesRef = ref(db, `chats/${chatId}/messages`);
-        off(messagesRef);
+    // 4. Aceptar Donación (Reducir cupo)
+    acceptRequest: async (requestId) => {
+        const reqRef = ref(db, `global_requests/${requestId}`);
+        const snapshot = await get(reqRef);
+        
+        if (snapshot.exists()) {
+            const req = snapshot.val();
+            const nuevosFaltantes = req.faltantes - 1;
+
+            if (nuevosFaltantes <= 0) {
+                // Si ya no faltan donadores, BORRAMOS la solicitud para todos
+                await remove(reqRef);
+                return { status: 'COMPLETE', hospital: req.hospital };
+            } else {
+                // Si aún faltan, solo actualizamos el contador
+                await update(reqRef, { faltantes: nuevosFaltantes });
+                return { status: 'CONTINUE', hospital: req.hospital };
+            }
+        }
+        return null;
     }
 };
